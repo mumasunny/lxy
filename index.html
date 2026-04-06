@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小红书作品解析（直连 XHS-Downloader）</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.5;
+        color: #1a1a1a;
+        background: #f4f4f5;
+      }
+      body {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      .hint {
+        font-size: 0.875rem;
+        color: #666;
+        margin-bottom: 20px;
+        padding: 12px 14px;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 8px;
+      }
+      .hint code {
+        font-size: 0.8rem;
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      .field {
+        margin-bottom: 16px;
+      }
+      textarea,
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid #d4d4d8;
+        border-radius: 8px;
+        font-size: 0.9375rem;
+      }
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #fff;
+        background: #18181b;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      pre {
+        margin-top: 20px;
+        padding: 14px;
+        background: #18181b;
+        color: #e4e4e7;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      .err {
+        color: #b91c1c;
+        font-size: 0.875rem;
+        margin-top: 8px;
+      }
+      .warn-video {
+        font-size: 0.875rem;
+        color: #7c2d12;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 18px;
+      }
+      .warn-video strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+      .warn-video ol {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+      .warn-video li {
+        margin-bottom: 6px;
+      }
+      #cookie {
+        min-height: 72px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>小红书作品解析</h1>
+    <p class="hint">
+      本页只请求 <strong>XHS-Downloader</strong> 自带的接口
+      <code>POST /xhs/detail</code>（默认 <code>127.0.0.1:5556</code>），与 Vue FastAPI Admin 无关。<br />
+      请先在 XHS-Downloader 目录执行：<code>python main.py api</code>。<br />
+      <strong>浏览器跨域限制：</strong>若直接双击打开本 HTML 并请求 5556 端口会被拦截。请在本目录运行
+      <code>python serve.py</code>，再用浏览器打开提示的地址（通过本地代理转发，避免跨域）。
+    </p>
+
+    <div class="warn-video">
+      <strong>视频下载失败 / 只有低清？请先完成下面两项</strong>
+      <ol>
+        <li>
+          <b>必须填 Cookie（视频尤其重要）</b>：未设置 Cookie 时，官方接口往往只给低清或不稳定。请用下方「如何复制 Cookie」步骤，把浏览器里小红书网页版的整段 Cookie 粘贴进来（需包含
+          <code>web_session</code> 等字段）。
+        </li>
+        <li>
+          <b>代理</b>：只有在你本机 Clash / V2 等<strong>已开启</strong>且端口一致时才填（如
+          <code>http://127.0.0.1:7890</code>）。若代理没开或填错，会导致<strong>取不到地址或下载失败</strong>——请先<strong>清空代理</strong>再试；项目说明里也提到全局代理可能导致异常。
+        </li>
+      </ol>
+      <p style="margin: 10px 0 0; font-size: 0.8rem">
+        详细图文见：
+        <a href="https://github.com/JoeanAmier/XHS-Downloader#-cookie" target="_blank" rel="noopener"
+          >XHS-Downloader → Cookie 说明</a
+        >
+      </p>
+    </div>
+
+    <details style="margin-bottom: 18px; font-size: 0.875rem; color: #52525b">
+      <summary style="cursor: pointer; font-weight: 500">如何复制 Cookie（简要）</summary>
+      <ol style="margin: 10px 0 0; padding-left: 1.25rem">
+        <li>Chrome/Edge 打开 <code>https://www.xiaohongshu.com/explore</code>（可先登录也可不登录）。</li>
+        <li>按 F12 →「网络」→ 勾选「保留日志」→ 筛选里输入 <code>cookie-name:web_session</code>。</li>
+        <li>在页面里随便点开一条笔记，在网络面板点任意一条请求，在「请求标头」里找到 <b>Cookie</b>，整段复制。</li>
+        <li>粘贴到本页下方「小红书 Cookie」文本框，再勾选下载并重试。</li>
+      </ol>
+    </details>
+
+    <form id="f">
+      <div class="field">
+        <label for="url">作品链接（必填）</label>
+        <textarea id="url" placeholder="粘贴小红书作品链接" required></textarea>
+      </div>
+      <div class="field row">
+        <label><input type="checkbox" id="download" /> 下载文件到 XHS 配置的目录（较慢）</label>
+      </div>
+      <div class="field row">
+        <label><input type="checkbox" id="skip" /> 跳过已有下载记录的作品</label>
+      </div>
+      <div class="field">
+        <label for="index">图片序号（图文可选，逗号分隔，如 1,3,5）</label>
+        <input type="text" id="index" placeholder="留空表示不按序号筛选" />
+      </div>
+      <div class="field">
+        <label for="cookie">小红书 Cookie（视频/高清强烈建议填写）</label>
+        <textarea id="cookie" placeholder="从浏览器开发者工具 → 网络请求 → 请求标头里复制完整 Cookie" autocomplete="off" spellcheck="false"></textarea>
+      </div>
+      <div class="field">
+        <label for="proxy">代理（仅当本机代理已开启时填写；异常时请先清空）</label>
+        <input type="text" id="proxy" placeholder="留空 = 不走代理；例如 http://127.0.0.1:7890" />
+      </div>
+      <div class="row">
+        <button type="submit" id="btn">提交</button>
+        <span id="status"></span>
+      </div>
+    </form>
+    <div id="err" class="err"></div>
+    <pre id="out" hidden></pre>
+
+    <script>
+      // 与 index.html 同源时使用代理路径（由 serve.py 转发到 5556）；若你自行给 XHS 加了 CORS，可改为直连
+      const USE_PROXY = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const API_DIRECT = "http://127.0.0.1:5556/xhs/detail";
+      const API_PROXY = "/proxy/xhs/detail";
+
+      function parseIndex(s) {
+        const t = s.trim();
+        if (!t) return undefined;
+        const parts = t.split(/[,，\s]+/).map((x) => x.trim()).filter(Boolean);
+        return parts.map((p) => {
+          const n = Number(p);
+          return Number.isFinite(n) ? n : p;
+        });
+      }
+
+      document.getElementById("f").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById("err");
+        const out = document.getElementById("out");
+        const btn = document.getElementById("btn");
+        const status = document.getElementById("status");
+        errEl.textContent = "";
+        out.hidden = true;
+        out.textContent = "";
+
+        const url = document.getElementById("url").value.trim();
+        if (!url) {
+          errEl.textContent = "请填写作品链接";
+          return;
+        }
+
+        const wantDownload = document.getElementById("download").checked;
+        const cookieVal = document.getElementById("cookie").value.trim();
+        if (wantDownload && !cookieVal) {
+          const ok = window.confirm(
+            "未填写 Cookie：视频类作品很可能无法下载到正常画质或会失败。\n\n建议点击「取消」，先按页面上方说明复制 Cookie 再提交。\n\n若仍要尝试（例如仅图文），请点击「确定」。"
+          );
+          if (!ok) return;
+        }
+
+        const body = {
+          url,
+          download: wantDownload,
+          skip: document.getElementById("skip").checked,
+        };
+        const idx = parseIndex(document.getElementById("index").value);
+        if (idx && idx.length) body.index = idx;
+        if (cookieVal) body.cookie = cookieVal;
+        const p = document.getElementById("proxy").value.trim();
+        if (p) body.proxy = p;
+
+        const target = USE_PROXY ? API_PROXY : API_DIRECT;
+        btn.disabled = true;
+        status.textContent = "请求中…";
+
+        try {
+          const res = await fetch(target, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error("响应不是 JSON: " + text.slice(0, 200));
+          }
+          out.textContent = JSON.stringify(data, null, 2);
+          out.hidden = false;
+          status.textContent = res.ok ? "完成" : "HTTP " + res.status;
+        } catch (x) {
+          errEl.textContent =
+            String(x.message || x) +
+            "（若未运行 serve.py，请用 python serve.py 再通过 http 打开本页）";
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
